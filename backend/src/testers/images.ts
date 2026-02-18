@@ -14,7 +14,7 @@ export async function testBrokenImages(page: Page, url: string): Promise<Bug[]> 
   await page.waitForTimeout(500);
 
   // Evaluate all images in the page
-  const brokenImages = await page.$$eval('img[src]', (imgs) =>
+  const brokenImages = await page.$$eval('img[src]', (imgs: HTMLImageElement[]) =>
     imgs
       .filter((img) => {
         // Skip data URIs and empty src

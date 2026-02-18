@@ -2,6 +2,23 @@ import AxeBuilder from '@axe-core/playwright';
 import type { Page } from 'playwright';
 import type { Bug, Severity } from '../types.js';
 
+// Minimal shape of the axe-core results we actually use
+interface AxeNode {
+  html: string;
+}
+
+interface AxeViolation {
+  id: string;
+  impact?: string;
+  help: string;
+  description: string;
+  nodes: AxeNode[];
+}
+
+interface AxeResults {
+  violations: AxeViolation[];
+}
+
 /**
  * Map axe-core impact levels to our severity.
  */
@@ -26,7 +43,10 @@ export async function testAccessibility(page: Page, url: string): Promise<Bug[]>
   await page.goto(url, { waitUntil: 'domcontentloaded' });
   await page.waitForTimeout(300);
 
-  const results = await new AxeBuilder({ page }).analyze();
+  // AxeBuilder uses `export =` which TypeScript NodeNext doesn't support with default
+  // imports — cast to any for construction, then type the result explicitly.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const results = await (new (AxeBuilder as any)({ page })).analyze() as AxeResults;
 
   const bugs: Bug[] = [];
 
@@ -35,7 +55,7 @@ export async function testAccessibility(page: Page, url: string): Promise<Bug[]>
 
     const affectedElements = violation.nodes
       .slice(0, 3)
-      .map((n) => n.html)
+      .map((n: AxeNode) => n.html)
       .join(', ');
 
     bugs.push({
