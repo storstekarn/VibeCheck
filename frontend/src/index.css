@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand: #f5a623;
+  --color-brand-dark: #d4911e;
+  --color-brand-light: rgba(245, 166, 35, 0.1);
+
+  --color-bg: #09090f;
+  --color-surface: #0d0d18;
+  --color-raised: #12121e;
+  --color-hover: #16162a;
+
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-bright: rgba(255, 255, 255, 0.13);
+
+  --color-ink: #f0f0f5;
+  --color-ink-dim: #a0a0c4;
+  --color-ink-faint: #8080b8;
+  --color-on-brand: #0d0a02;
+
+  --color-crit: #f87171;
+  --color-warn: #fbbf24;
+  --color-hint: #60a5fa;
+
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-code: 'JetBrains Mono', monospace;
+}
+
+/* === App background === */
+.app-bg {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% -8%, rgba(245, 166, 35, 0.07), transparent),
+    #09090f;
+}
+
+/* === Entrance animations === */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* === Counting number animation === */
+@keyframes count-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  60%  { transform: scale(1.15); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-count-pop {
+  animation: count-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* === Celebration === */
+@keyframes celebrate-bounce {
+  0%   { transform: scale(0) rotate(-10deg); opacity: 0; }
+  50%  { transform: scale(1.3) rotate(5deg); }
+  70%  { transform: scale(0.9) rotate(-3deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+.animate-celebrate {
+  animation: celebrate-bounce 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* === Confetti particles === */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(60px) rotate(360deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  animation: confetti-fall var(--fall-duration, 1.5s) ease-out var(--fall-delay, 0s) both;
+}
+
+/* === Crawling bugs === */
+@keyframes crawl-horizontal {
+  0%   { transform: translateX(var(--start-x, -20px)) scaleX(1); }
+  49%  { transform: translateX(var(--end-x, 100%)) scaleX(1); }
+  50%  { transform: translateX(var(--end-x, 100%)) scaleX(-1); }
+  99%  { transform: translateX(var(--start-x, -20px)) scaleX(-1); }
+  100% { transform: translateX(var(--start-x, -20px)) scaleX(1); }
+}
+
+@keyframes crawl-vertical {
+  0%   { transform: translateY(var(--start-y, -10px)); }
+  50%  { transform: translateY(var(--end-y, 200px)); }
+  100% { transform: translateY(var(--start-y, -10px)); }
+}
+
+@keyframes bug-wiggle {
+  0%, 100% { rotate: -4deg; }
+  50%       { rotate: 4deg; }
+}
+
+.bug-sprite {
+  animation:
+    var(--crawl-anim) var(--duration, 20s) linear infinite,
+    bug-wiggle 0.25s ease-in-out infinite;
+  animation-delay: var(--delay, 0s);
+}
+
+/* === Progress bar glow === */
+@keyframes progress-pulse {
+  0%, 100% { box-shadow: 0 0 8px rgba(245, 166, 35, 0.5), 0 0 20px rgba(245, 166, 35, 0.2); }
+  50%       { box-shadow: 0 0 14px rgba(245, 166, 35, 0.7), 0 0 30px rgba(245, 166, 35, 0.3); }
+}
+
+.progress-glow {
+  animation: progress-pulse 2s ease-in-out infinite;
+}
+
+/* === Copy button === */
+@keyframes subtle-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 166, 35, 0); }
+  50%       { box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.1); }
+}
+
+.copy-btn-pulse:hover {
+  animation: subtle-pulse 1.5s ease-in-out infinite;
+}
+
+/* === Fix prompt expand === */
+.fix-prompt-enter {
+  animation: fade-up 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* === URL input interaction states === */
+/* Tailwind can't express multi-value box-shadows easily, so these live in CSS */
+.url-input-glow:not(:disabled):hover {
+  box-shadow: 0 0 0 4px rgba(245, 166, 35, 0.06), 0 0 24px rgba(245, 166, 35, 0.09);
+}
+
+.url-input-glow:not(:disabled):focus-visible {
+  outline: none; /* suppress global *:focus-visible rule for this element */
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.22), 0 0 32px rgba(245, 166, 35, 0.14);
+}
+
+.url-input-glow.url-input-error:not(:disabled):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.22), 0 0 24px rgba(248, 113, 113, 0.10);
+}
+
+/* === Global focus indicator (SC 2.4.7) === */
+*:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* === Reduced motion (SC 2.3.3) === */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* === Bug card severity hovers === */
+.bug-card-crit:hover {
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.12), 0 8px 32px rgba(248, 113, 113, 0.06);
+}
+.bug-card-warn:hover {
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.12), 0 8px 32px rgba(251, 191, 36, 0.06);
+}
+.bug-card-info:hover {
+  box-shadow: 0 0 0 1px rgba(96, 165, 250, 0.12), 0 8px 32px rgba(96, 165, 250, 0.06);
+}
