@@ -1,10 +1,16 @@
 import express from 'express';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import fs from 'fs';
 import type { QAReport, ProgressEvent } from './types.js';
 import { runScan } from './orchestrator.js';
 import { isApiKeyConfigured } from './prompt-generator.js';
 import { getCacheStats } from './prompt-cache.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // --- Scan State ---
 
@@ -165,6 +171,15 @@ export function createApp() {
 
     res.json(scan.report);
   });
+
+  // Serve frontend static files (production build)
+  const frontendDist = join(__dirname, '../../frontend/dist');
+  if (fs.existsSync(frontendDist)) {
+    app.use(express.static(frontendDist));
+    app.get('*', (_req, res) => {
+      res.sendFile(join(frontendDist, 'index.html'));
+    });
+  }
 
   return { app, scanStore };
 }
