@@ -76,7 +76,7 @@ describe('generateReportPdf', () => {
 
   it('should contain the report title', () => {
     const doc = generateReportPdf(makeReport());
-    const text = doc.output('datauristring');
+    doc.output('datauristring');
     // jsPDF encodes text into the PDF - we can check the raw output contains our text
     // A more reliable check: get the internal pages
     expect(doc.getNumberOfPages()).toBeGreaterThanOrEqual(1);

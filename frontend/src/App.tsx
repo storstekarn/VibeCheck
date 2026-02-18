@@ -23,7 +23,7 @@ function App() {
       setState({ phase: 'scanning', scanId, progress: [] });
 
       // Connect to SSE progress stream
-      const cleanup = connectProgress(
+      connectProgress(
         scanId,
         (event) => {
           setState((prev) => {
