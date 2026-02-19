@@ -10,38 +10,37 @@ const MARGIN = 20;
 const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
 const PAGE_HEIGHT = 297;
 const FOOTER_Y = PAGE_HEIGHT - 15;
-const BUG_INDENT = MARGIN + 5; // content indented past the left border
+const BUG_INDENT = MARGIN + 5;
 const BUG_CONTENT_WIDTH = CONTENT_WIDTH - 5;
 
-// Darker, high-contrast colors for PDF readability
 const SEVERITY_COLORS: Record<Severity, { border: [number, number, number]; text: [number, number, number]; bg: [number, number, number]; label: string }> = {
   critical: {
-    border: [185, 28, 28],    // red-800
-    text: [153, 27, 27],      // red-800
-    bg: [254, 242, 242],      // red-50
-    label: 'CRITICAL',
+    border: [185, 28, 28],
+    text:   [153, 27, 27],
+    bg:     [254, 242, 242],
+    label:  'CRITICAL',
   },
   warning: {
-    border: [161, 98, 7],     // amber-700
-    text: [133, 77, 14],      // amber-800
-    bg: [255, 251, 235],      // amber-50
-    label: 'WARNING',
+    border: [161, 98, 7],
+    text:   [133, 77, 14],
+    bg:     [255, 251, 235],
+    label:  'WARNING',
   },
   info: {
-    border: [29, 78, 216],    // blue-700
-    text: [30, 64, 175],      // blue-800
-    bg: [239, 246, 255],      // blue-50
-    label: 'INFO',
+    border: [29, 78, 216],
+    text:   [30, 64, 175],
+    bg:     [239, 246, 255],
+    label:  'INFO',
   },
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  'console-error': 'Console Error',
-  'network-error': 'Network Error',
-  'broken-link': 'Broken Link',
-  'broken-image': 'Broken Image',
-  'accessibility': 'Accessibility',
-  'responsive': 'Responsive',
+  'console-error':  'Console Error',
+  'network-error':  'Network Error',
+  'broken-link':    'Broken Link',
+  'broken-image':   'Broken Image',
+  'accessibility':  'Accessibility',
+  'responsive':     'Responsive',
 };
 
 export function generateReportPdf(report: QAReport): jsPDF {
@@ -85,31 +84,46 @@ export function generateReportPdf(report: QAReport): jsPDF {
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(GRAY);
   doc.text(report.url, MARGIN, y);
-  const dateStr = new Date(report.timestamp).toLocaleString();
-  doc.text(dateStr, PAGE_WIDTH - MARGIN, y, { align: 'right' });
+  doc.text(new Date(report.timestamp).toLocaleString(), PAGE_WIDTH - MARGIN, y, { align: 'right' });
   y += 8;
 
   // --- Summary card ---
-  const summaryHeight = 28;
-  doc.setFillColor(248, 249, 250); // gray-50
-  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, summaryHeight, 2, 2, 'F');
+  const CARD_H = 30;
+  doc.setFillColor(248, 249, 250);
+  doc.roundedRect(MARGIN, y, CONTENT_WIDTH, CARD_H, 2, 2, 'F');
 
-  doc.setFontSize(11);
+  // Left side: "X pages scanned" label
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(GRAY);
+  doc.text(
+    `${report.pagesFound} page${report.pagesFound !== 1 ? 's' : ''} scanned`,
+    MARGIN + 6,
+    y + 9,
+  );
+
+  // Big count number
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(CHARCOAL);
-  doc.text(`${report.pagesFound} pages scanned`, MARGIN + 6, y + 8);
+  const countStr = `${report.summary.totalBugs}`;
+  doc.text(countStr, MARGIN + 6, y + 22);
 
-  doc.setFontSize(18);
-  doc.text(`${report.summary.totalBugs}`, MARGIN + 6, y + 20);
+  // "bugs found" label on the same baseline as the count
+  const countW = doc.getTextWidth(countStr);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(' bugs found', MARGIN + 6 + doc.getTextWidth(`${report.summary.totalBugs} `), y + 20);
+  doc.setTextColor(CHARCOAL_LIGHT);
+  doc.text('bugs found', MARGIN + 6 + countW + 2, y + 22);
 
-  // Severity pills on the right side of summary card
+  // Right side: severity pills, vertically centred in the card
+  const PILL_H = 7;
+  const pillCenterY = y + CARD_H / 2 - PILL_H / 2; // vertically centred
+
   const pills = [
     { count: report.summary.critical, ...SEVERITY_COLORS.critical },
     { count: report.summary.warnings, ...SEVERITY_COLORS.warning },
-    { count: report.summary.info, ...SEVERITY_COLORS.info },
+    { count: report.summary.info,     ...SEVERITY_COLORS.info },
   ];
   let px = PAGE_WIDTH - MARGIN - 6;
   for (let i = pills.length - 1; i >= 0; i--) {
@@ -117,41 +131,20 @@ export function generateReportPdf(report: QAReport): jsPDF {
     const pillText = `${p.count} ${p.label}`;
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    const tw = doc.getTextWidth(pillText);
-    const pillW = tw + 6;
+    const pillW = doc.getTextWidth(pillText) + 8;
     const pillX = px - pillW;
 
-    // Pill background
     doc.setFillColor(...p.bg);
-    doc.roundedRect(pillX, y + 14, pillW, 6, 1.5, 1.5, 'F');
-
-    // Pill text
+    doc.roundedRect(pillX, pillCenterY, pillW, PILL_H, 2, 2, 'F');
     doc.setTextColor(...p.text);
-    doc.text(pillText, pillX + 3, y + 18.5);
+    doc.text(pillText, pillX + 4, pillCenterY + 4.8);
 
-    px = pillX - 3;
+    px = pillX - 4;
   }
 
-  y += summaryHeight + 8;
+  y += CARD_H + 8;
 
-  // --- Warnings ---
-  if (report.warnings && report.warnings.length > 0) {
-    for (const warning of report.warnings) {
-      const warnLines = doc.splitTextToSize(warning, CONTENT_WIDTH - 10);
-      const warnHeight = warnLines.length * 4 + 6;
-      doc.setFillColor(255, 251, 235); // amber-50
-      doc.roundedRect(MARGIN, y, CONTENT_WIDTH, warnHeight, 1.5, 1.5, 'F');
-      doc.setFillColor(161, 98, 7); // amber-700
-      doc.roundedRect(MARGIN, y, 1.5, warnHeight, 0.75, 0.75, 'F');
-      doc.setFontSize(8.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(133, 77, 14); // amber-800
-      doc.text(warnLines, MARGIN + 6, y + 5);
-      y += warnHeight + 4;
-    }
-  }
-
-  // --- Bugs ---
+  // --- Bug list ---
   const allBugs = report.pages.flatMap((p) => p.bugs);
 
   if (allBugs.length === 0) {
@@ -160,68 +153,79 @@ export function generateReportPdf(report: QAReport): jsPDF {
     doc.setFont('helvetica', 'bold');
     doc.text('No bugs found! Your app looks great.', PAGE_WIDTH / 2, y + 10, { align: 'center' });
   } else {
+    // Section label
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(160, 160, 160);
+    const sectionLabel = `BUGS — ${allBugs.length} FOUND`;
+    doc.text(sectionLabel, MARGIN, y);
+    const labelW = doc.getTextWidth(sectionLabel);
+    doc.setDrawColor(220, 220, 220);
+    doc.line(MARGIN + labelW + 3, y - 0.5, PAGE_WIDTH - MARGIN, y - 0.5);
+    y += 6;
+
     for (const bug of allBugs) {
-      renderBug(doc, bug);
+      renderBug(bug);
     }
   }
 
   addFooter();
   return doc;
 
-  function renderBug(doc: jsPDF, bug: Bug) {
-    // Estimate height needed: header + title + details + page + prompt
-    checkPageBreak(45);
+  function renderBug(bug: Bug) {
+    checkPageBreak(50);
 
     const sev = SEVERITY_COLORS[bug.severity];
     const cardTop = y;
+    y += 3; // top padding
 
-    // --- Severity label + type on one line ---
+    // Severity label + type (one line)
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...sev.text);
-    doc.text(sev.label, BUG_INDENT, y + 3.5);
+    doc.text(sev.label, BUG_INDENT, y);
     const labelW = doc.getTextWidth(sev.label);
 
-    doc.setFontSize(8);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(GRAY);
-    doc.text(`  ·  ${TYPE_LABELS[bug.type] || bug.type}`, BUG_INDENT + labelW, y + 3.5);
-    y += 7;
+    doc.text(`  ·  ${TYPE_LABELS[bug.type] || bug.type}`, BUG_INDENT + labelW, y);
+    y += 6;
 
-    // --- Title ---
+    // Title
     doc.setFontSize(10.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(CHARCOAL);
     const titleLines = doc.splitTextToSize(bug.title, BUG_CONTENT_WIDTH);
     doc.text(titleLines, BUG_INDENT, y);
-    y += titleLines.length * 4.5 + 1;
+    y += titleLines.length * 4.5 + 2;
 
-    // --- Details ---
+    // Details
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(CHARCOAL_LIGHT);
     const detailLines = doc.splitTextToSize(bug.details, BUG_CONTENT_WIDTH);
     doc.text(detailLines, BUG_INDENT, y);
-    y += detailLines.length * 3.8 + 1;
+    y += detailLines.length * 3.8 + 2;
 
-    // --- Page URL ---
+    // Page URL
     doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
     doc.setTextColor(160, 160, 160);
     try {
       doc.text(new URL(bug.page).pathname, BUG_INDENT, y);
     } catch {
       doc.text(bug.page, BUG_INDENT, y);
     }
-    y += 4;
+    y += 5;
 
-    // --- Fix prompt box ---
+    // Fix prompt box
     if (bug.fixPrompt) {
-      checkPageBreak(18);
+      checkPageBreak(20);
       const promptLines = doc.splitTextToSize(bug.fixPrompt, BUG_CONTENT_WIDTH - 10);
-      const boxHeight = promptLines.length * 3.8 + 10;
+      const boxH = promptLines.length * 3.8 + 10;
 
-      doc.setFillColor(248, 249, 250); // gray-50
-      doc.roundedRect(BUG_INDENT, y, BUG_CONTENT_WIDTH, boxHeight, 1.5, 1.5, 'F');
+      doc.setFillColor(248, 249, 250);
+      doc.roundedRect(BUG_INDENT, y, BUG_CONTENT_WIDTH, boxH, 1.5, 1.5, 'F');
 
       doc.setFontSize(6.5);
       doc.setFont('helvetica', 'bold');
@@ -232,15 +236,15 @@ export function generateReportPdf(report: QAReport): jsPDF {
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(CHARCOAL);
       doc.text(promptLines, BUG_INDENT + 4, y + 8.5);
-      y += boxHeight + 2;
+      y += boxH + 2;
     }
 
-    // --- Draw left color border (drawn last so it spans the full card height) ---
-    const cardHeight = y - cardTop;
-    doc.setFillColor(...sev.border);
-    doc.roundedRect(MARGIN, cardTop - 1, 1.5, cardHeight + 1, 0.75, 0.75, 'F');
+    y += 3; // bottom padding
 
-    // --- Spacing between bug cards ---
-    y += 6;
+    // Left colour border drawn last — spans exact card height with no offsets
+    doc.setFillColor(...sev.border);
+    doc.roundedRect(MARGIN, cardTop, 1.5, y - cardTop, 0.75, 0.75, 'F');
+
+    y += 5; // gap between cards
   }
 }

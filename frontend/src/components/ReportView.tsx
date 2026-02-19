@@ -3,7 +3,6 @@ import type { QAReport, Severity } from '../types';
 import { BugCard } from './BugCard';
 import { CopyButton } from './CopyButton';
 import { DownloadReportButton } from './DownloadReportButton';
-import { CrawlingBugs } from './CrawlingBugs';
 import { AnimatedNumber } from './AnimatedNumber';
 import { Confetti } from './Confetti';
 
@@ -35,7 +34,6 @@ export function ReportView({ report, onReset }: ReportViewProps) {
 
   return (
     <div className="relative min-h-screen app-bg">
-      {!noBugs && <CrawlingBugs summary={summary} />}
       {noBugs && <Confetti />}
 
       <div className="relative z-10 max-w-4xl mx-auto py-10 px-4">
