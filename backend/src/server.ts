@@ -71,11 +71,18 @@ function validateUrl(url: string): string | null {
   try {
     const parsed = new URL(url);
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      return 'Invalid URL: must use http or https protocol';
+      return 'Please enter a valid URL (e.g., https://example.com)';
     }
+
+    // Require a valid domain with TLD (e.g., example.com — not just "erik")
+    const parts = parsed.hostname.split('.');
+    if (parts.length < 2 || parts[parts.length - 1].length < 2) {
+      return 'Please enter a valid URL (e.g., https://example.com)';
+    }
+
     return null;
   } catch {
-    return 'Invalid URL: could not parse URL';
+    return 'Please enter a valid URL (e.g., https://example.com)';
   }
 }
 

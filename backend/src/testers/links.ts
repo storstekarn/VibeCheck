@@ -2,15 +2,18 @@ import type { Page } from 'playwright';
 import type { Bug } from '../types.js';
 
 const SKIP_PROTOCOLS = ['mailto:', 'tel:', 'javascript:', 'data:', 'blob:'];
+const MAX_LINKS = 50;       // Cap to avoid runaway checking on link-heavy pages
+const LINK_TIMEOUT = 5000;  // 5 s per link (down from 10 s)
 
 /**
  * Check all <a> links on a page for broken targets (4xx/5xx).
  * Navigates to the page first, then checks each link.
+ * Capped at MAX_LINKS unique URLs to stay within the per-tester time budget.
  */
 export async function testBrokenLinks(page: Page, url: string): Promise<Bug[]> {
   const bugs: Bug[] = [];
 
-  await page.goto(url, { waitUntil: 'domcontentloaded' });
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
   // Extract all href values
   const hrefs = await page.$$eval('a[href]', (anchors) =>
@@ -18,10 +21,12 @@ export async function testBrokenLinks(page: Page, url: string): Promise<Bug[]> {
   );
 
   // Resolve relative URLs and deduplicate
-  const baseOrigin = new URL(url).origin;
   const checked = new Set<string>();
 
   for (const href of hrefs) {
+    // Honour the link cap
+    if (checked.size >= MAX_LINKS) break;
+
     // Skip special protocols
     if (SKIP_PROTOCOLS.some((p) => href.toLowerCase().startsWith(p))) continue;
     if (href.startsWith('#')) continue;
@@ -41,7 +46,7 @@ export async function testBrokenLinks(page: Page, url: string): Promise<Bug[]> {
     try {
       const response = await page.request.fetch(withoutHash, {
         method: 'HEAD',
-        timeout: 10000,
+        timeout: LINK_TIMEOUT,
       });
 
       if (response.status() >= 400) {
@@ -56,7 +61,7 @@ export async function testBrokenLinks(page: Page, url: string): Promise<Bug[]> {
         });
       }
     } catch {
-      // Request failed entirely (timeout, DNS, etc.)
+      // Request failed entirely (timeout, DNS, etc.) — report as broken
       bugs.push({
         id: '',
         type: 'broken-link',

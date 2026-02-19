@@ -22,9 +22,16 @@ export function validateUrl(url: string): string | null {
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
       return 'URL must start with http:// or https://';
     }
+
+    // Require a valid domain with TLD (e.g., example.com — not just "erik")
+    const parts = parsed.hostname.split('.');
+    if (parts.length < 2 || parts[parts.length - 1].length < 2) {
+      return 'Please enter a valid URL (e.g., https://example.com)';
+    }
+
     return null;
   } catch {
-    return 'Please enter a valid URL (e.g., https://your-app.lovable.app)';
+    return 'Please enter a valid URL (e.g., https://example.com)';
   }
 }
 

@@ -11,6 +11,26 @@ type AppState =
   | { phase: 'report'; report: QAReport }
   | { phase: 'error'; message: string };
 
+function getFriendlyError(message: string): string {
+  if (message.includes('timed out') || message.includes('timeout')) {
+    return 'The scan took too long and was stopped. Try scanning a smaller site or one with fewer pages.';
+  }
+  if (message.includes('Connection to server lost')) {
+    return 'Lost connection to the server. Please check your internet connection and try again.';
+  }
+  if (message.includes('Failed to load report') || message.includes('Failed to fetch report')) {
+    return 'Could not load the scan results. Please try again.';
+  }
+  if (message.includes('Failed to start scan')) {
+    return 'Could not start the scan. Please check the URL and try again.';
+  }
+  if (message.includes('already running')) {
+    return 'Another scan is already in progress. Please wait a moment and try again.';
+  }
+  // Validation errors and other already-friendly messages are returned as-is
+  return message;
+}
+
 function App() {
   const [state, setState] = useState<AppState>({ phase: 'input' });
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +133,8 @@ function App() {
               >
                 ✕
               </div>
-              <p className="text-base text-ink-dim mb-6 max-w-sm">{state.message}</p>
+              <h2 className="text-lg font-display font-bold text-ink mb-2">Something went wrong</h2>
+              <p className="text-base text-ink-dim mb-6 max-w-sm">{getFriendlyError(state.message)}</p>
               <button
                 onClick={handleReset}
                 className="px-6 py-2.5 bg-surface text-ink rounded-xl border border-line
