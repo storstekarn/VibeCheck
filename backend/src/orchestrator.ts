@@ -145,7 +145,15 @@ async function runScanInner(
   });
 
   // Phase 2: Test each page
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({
+    headless: true,
+    args: [
+      '--no-sandbox',           // required: containers don't have kernel namespaces for Chrome sandbox
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage', // /dev/shm is too small in Docker by default
+      '--disable-gpu',
+    ],
+  });
   const pageReports: PageReport[] = [];
 
   try {

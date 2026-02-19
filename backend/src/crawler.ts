@@ -109,6 +109,16 @@ export async function crawlPages(
       maxRequestsPerCrawl: maxPages,
       maxConcurrency,
       headless: true,
+      launchContext: {
+        launchOptions: {
+          args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+          ],
+        },
+      },
       requestHandlerTimeoutSecs: 30,
       navigationTimeoutSecs: 15,
 
