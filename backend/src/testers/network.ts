@@ -1,13 +1,18 @@
 import type { Page } from 'playwright';
 import type { Bug } from '../types.js';
 
-// URLs to ignore (browser noise)
+// URLs to ignore — third-party infrastructure not actionable by site owners
 const IGNORE_PATTERNS = [
   /favicon\.ico/,
   /google-analytics/,
   /googletagmanager/,
   /hotjar/,
   /sentry/,
+  /\/cdn-cgi\//,       // Cloudflare edge scripts (email-decode, rocket-loader, etc.)
+  /cloudflareinsights/, // Cloudflare Web Analytics beacon
+  /clarity\.ms/,        // Microsoft Clarity
+  /doubleclick\.net/,   // Google Ads
+  /adsbygoogle/,        // Google AdSense
 ];
 
 function isNoisy(url: string): boolean {

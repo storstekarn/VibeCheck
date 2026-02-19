@@ -12,8 +12,8 @@ const TEMPLATES: Record<BugType, (bug: Bug) => string> = {
 
   'network-error': (bug) =>
     `On the ${getPagePath(bug.page)} page, a network request is failing: "${bug.title}". ` +
-    `Please check that the API endpoint exists, the Supabase query is correct, and RLS policies allow access. ` +
-    `Also add error handling to show the user a helpful message when the request fails.`,
+    `Check that the requested resource exists and is accessible (correct URL, server is running, no CORS or auth issues). ` +
+    `Add error handling so the user sees a helpful message if the request fails.`,
 
   'broken-link': (bug) =>
     `On the ${getPagePath(bug.page)} page, there's a broken link: "${bug.title}". ` +
@@ -21,7 +21,7 @@ const TEMPLATES: Record<BugType, (bug: Bug) => string> = {
 
   'broken-image': (bug) =>
     `On the ${getPagePath(bug.page)} page, an image is failing to load: "${bug.details}". ` +
-    `Please check the image source path is correct. If the image is stored in Supabase Storage, verify the bucket is public or the URL is a valid signed URL.`,
+    `Check that the image file exists at the specified path and the URL is correct. If the image was recently moved or deleted, update the src attribute to point to the right location.`,
 
   'accessibility': (bug) =>
     `On the ${getPagePath(bug.page)} page, there's an accessibility issue: "${bug.title}". ` +
@@ -59,17 +59,19 @@ export function generateTemplatePrompts(bugs: Bug[]): Bug[] {
 
 // --- LLM-powered prompt generation ---
 
-const SYSTEM_PROMPT = `You are a QA assistant for Lovable apps. Lovable apps use React + TypeScript + Tailwind CSS + shadcn/ui + Supabase.
+const SYSTEM_PROMPT = `You are a QA assistant for web applications. You will receive a list of bugs found on a specific page.
 
-You will receive a list of bugs found on a specific page. For each bug, generate a short fix prompt (2-4 sentences) that a non-technical user can paste into Lovable's AI chat to fix the issue.
+For each bug, generate a short fix suggestion (2-4 sentences) that a non-technical site owner can understand and act on.
 
 Requirements:
 - Be specific and actionable — reference the exact page and error
-- Use simple language — the user is not a developer
-- Suggest the likely root cause and fix approach
+- Use simple, plain language — the user is not necessarily a developer
+- Suggest the likely root cause and a concrete fix
 - Keep each prompt concise (2-4 sentences max)
+- Do NOT assume a specific tech stack (e.g. Supabase, React, Next.js) unless you can clearly infer it from the bug details
+- If the bug is about a third-party service (analytics, CDN, social media), note that it may not be directly fixable by the site owner
 
-Respond with a JSON array of strings, one fix prompt per bug, in the same order as the input bugs.`;
+Respond with a JSON array of strings, one fix suggestion per bug, in the same order as the input bugs.`;
 
 export interface PromptGenerationResult {
   bugs: Bug[];
