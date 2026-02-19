@@ -35,9 +35,19 @@ export function adminHtml(): string {
     label { font-size: 0.7rem; color: #8080b8; text-transform: uppercase; letter-spacing: 0.08em; display: block; margin-bottom: 0.5rem; }
     input[type=password] { width: 100%; padding: 0.7rem 1rem; background: #0d0d18; border: 1px solid rgba(245,166,35,0.3); border-radius: 8px; color: #f0f0f5; font-size: 0.9rem; outline: none; transition: border-color 0.2s; }
     input[type=password]:focus { border-color: rgba(245,166,35,0.65); }
-    button { margin-top: 0.75rem; width: 100%; padding: 0.7rem; background: #f5a623; color: #0d0a02; border: none; border-radius: 8px; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: background 0.15s; }
-    button:hover { background: #d4911e; }
+    /* Base button (login — full width) */
+    button { margin-top: 0.75rem; width: 100%; padding: 0.7rem; background: #f5a623; color: #0d0a02; border: none; border-radius: 8px; font-weight: 700; font-size: 0.875rem; cursor: pointer; transition: background 0.15s, opacity 0.15s; }
+    button:hover:not(:disabled) { background: #d4911e; }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
     .err { color: #f87171; font-size: 0.8rem; margin-top: 0.5rem; min-height: 1.2em; }
+    /* Dashboard header row */
+    .dash-header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+    .dash-meta { font-size: 0.75rem; color: #8080b8; }
+    /* Refresh button — compact, auto-width, overrides the full-width login rule */
+    .btn-refresh { margin-top: 0; width: auto; padding: 0.6rem 1.25rem; font-size: 0.825rem; display: inline-flex; align-items: center; gap: 0.45rem; letter-spacing: 0.01em; box-shadow: 0 0 18px rgba(245,166,35,0.18); }
+    .btn-refresh:hover:not(:disabled) { box-shadow: 0 0 28px rgba(245,166,35,0.3); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spin { display: inline-block; animation: spin 0.8s linear infinite; }
     .ts { font-size: 0.7rem; color: #8080b8; text-align: center; margin-top: 1rem; }
   </style>
 </head>
@@ -56,6 +66,14 @@ export function adminHtml(): string {
 
   <!-- Dashboard (hidden until authenticated) -->
   <div id="dash" style="display:none">
+    <!-- Header row: subtitle on the left, Refresh button on the right -->
+    <div class="dash-header">
+      <p class="dash-meta" id="refresh-ts">Loading…</p>
+      <button class="btn-refresh" id="refresh-btn" onclick="refresh()">
+        <span id="refresh-icon">↻</span> Refresh Data
+      </button>
+    </div>
+
     <div class="grid-4" id="kpis"></div>
     <div class="grid-2" id="tables"></div>
     <p class="ts" id="ts"></p>
@@ -63,28 +81,65 @@ export function adminHtml(): string {
 </div>
 
 <script>
+let savedKey = '';
+
+/* ── Auth flow ─────────────────────────────────────────────────── */
 async function go() {
   const key = document.getElementById('ak').value.trim();
   document.getElementById('err').textContent = '';
   if (!key) return;
 
+  const ok = await fetchAndRender(key, 'err');
+  if (ok) {
+    savedKey = key;
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('dash').style.display = '';
+  }
+}
+
+/* ── Refresh (reuses saved key, no page reload) ─────────────────── */
+async function refresh() {
+  if (!savedKey) return;
+  const btn  = document.getElementById('refresh-btn');
+  const icon = document.getElementById('refresh-icon');
+
+  btn.disabled = true;
+  icon.className = 'spin';
+
+  await fetchAndRender(savedKey, null);
+
+  icon.className = '';
+  btn.disabled = false;
+}
+
+/* ── Shared fetch + render ──────────────────────────────────────── */
+async function fetchAndRender(key, errId) {
   let data;
   try {
     const res = await fetch('/api/admin/stats?key=' + encodeURIComponent(key));
-    if (res.status === 401) { document.getElementById('err').textContent = 'Invalid key.'; return; }
-    if (res.status === 503) { document.getElementById('err').textContent = 'ADMIN_KEY not configured on the server.'; return; }
-    if (!res.ok) { document.getElementById('err').textContent = 'Server error — check Railway logs.'; return; }
+    if (res.status === 401) {
+      if (errId) document.getElementById(errId).textContent = 'Invalid key.';
+      return false;
+    }
+    if (res.status === 503) {
+      if (errId) document.getElementById(errId).textContent = 'ADMIN_KEY not configured on the server.';
+      return false;
+    }
+    if (!res.ok) {
+      if (errId) document.getElementById(errId).textContent = 'Server error — check Railway logs.';
+      return false;
+    }
     data = await res.json();
   } catch {
-    document.getElementById('err').textContent = 'Could not reach server.';
-    return;
+    if (errId) document.getElementById(errId).textContent = 'Could not reach server.';
+    return false;
   }
 
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('dash').style.display = '';
   render(data);
+  return true;
 }
 
+/* ── Rendering helpers ──────────────────────────────────────────── */
 function bar(n, max) {
   const pct = max > 0 ? Math.round(n / max * 100) : 0;
   return '<div class="bar-wrap"><div class="bar" style="width:' + pct + '%"></div></div>';
@@ -115,7 +170,7 @@ function render(d) {
     '<div class="card"><div class="stat">' + val + '</div><div class="stat-label">' + label + '</div></div>'
   ).join('');
 
-  // Severity breakdown for KPI row
+  // Severity breakdown
   const sev = d.bugsBySeverity || {};
   document.getElementById('kpis').innerHTML +=
     ['critical','warning','info'].map(k =>
@@ -134,7 +189,11 @@ function render(d) {
     + '<div class="card"><h2>Bugs by Severity</h2>'
       + table(Object.entries(sev).sort(([,a],[,b])=>b-a), 'No data.') + '</div>';
 
-  document.getElementById('ts').textContent = 'Last updated: ' + (d.lastUpdated || '—');
+  // Timestamps
+  const now   = new Date().toLocaleTimeString();
+  const stored = d.lastUpdated ? new Date(d.lastUpdated).toLocaleString() : '—';
+  document.getElementById('refresh-ts').textContent = 'Refreshed at ' + now;
+  document.getElementById('ts').textContent = 'Stats last written: ' + stored;
 }
 </script>
 </body>
