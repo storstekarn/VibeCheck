@@ -8,7 +8,8 @@ import { testAccessibility } from './testers/accessibility.js';
 import { testResponsive } from './testers/responsive.js';
 import { generateFixPrompts } from './prompt-generator.js';
 import { buildReport } from './report-builder.js';
-import type { Bug, PageReport, ProgressEvent, QAReport } from './types.js';
+import { recordScan } from './analytics.js';
+import type { Bug, BugType, PageReport, ProgressEvent, QAReport } from './types.js';
 
 const TESTER_TIMEOUT = 30_000; // 30 seconds per tester
 const SCAN_TIMEOUT = 300_000; // 5 minutes total
@@ -200,6 +201,35 @@ async function runScanInner(
   // Attach warnings to report
   if (promptResult.usedFallback && promptResult.fallbackReason) {
     report.warnings = [promptResult.fallbackReason];
+  }
+
+  // Record analytics (best-effort — never let this fail a scan)
+  try {
+    const allBugs = pageReports.flatMap((p) => p.bugs);
+    const bugsByType: Partial<Record<BugType, number>> = {};
+    for (const bug of allBugs) {
+      bugsByType[bug.type] = (bugsByType[bug.type] ?? 0) + 1;
+    }
+    // When templates were used, attribute all bugs to template usage by type
+    const templateTypeUsage: Partial<Record<BugType, number>> = promptResult.usedFallback
+      ? { ...bugsByType }
+      : {};
+
+    recordScan({
+      domain: new URL(url).hostname,
+      pagesScanned: discoveredPages.length,
+      totalBugs: allBugs.length,
+      bugsByType,
+      bugsBySeverity: {
+        critical: report.summary.critical,
+        warning:  report.summary.warnings,
+        info:     report.summary.info,
+      },
+      usedTemplates: promptResult.usedFallback,
+      templateTypeUsage,
+    });
+  } catch (err) {
+    console.warn('[Analytics] Failed to record scan:', err instanceof Error ? err.message : err);
   }
 
   progress({ phase: 'complete', message: 'Scan complete!', progress: 100 });

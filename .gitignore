@@ -38,5 +38,6 @@ Thumbs.db
 # Claude Code local config
 .claude/
 
-# Runtime cache files
+# Runtime cache / analytics files (generated at runtime, not source)
 prompt-cache.json
+analytics.json

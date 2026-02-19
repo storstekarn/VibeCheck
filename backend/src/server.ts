@@ -8,6 +8,8 @@ import type { QAReport, ProgressEvent } from './types.js';
 import { runScan } from './orchestrator.js';
 import { isApiKeyConfigured } from './prompt-generator.js';
 import { getCacheStats } from './prompt-cache.js';
+import { getStats } from './analytics.js';
+import { adminHtml } from './admin-html.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -148,6 +150,27 @@ export function createApp() {
     req.on('close', () => {
       scan.progressListeners.delete(listener);
     });
+  });
+
+  // GET /api/admin/stats — analytics data (requires ADMIN_KEY)
+  app.get('/api/admin/stats', (req, res) => {
+    const adminKey = process.env.ADMIN_KEY;
+    if (!adminKey) {
+      res.status(503).json({ error: 'Admin access not configured — set the ADMIN_KEY environment variable.' });
+      return;
+    }
+    const provided = (req.headers['x-admin-key'] as string | undefined) ?? (req.query['key'] as string | undefined);
+    if (provided !== adminKey) {
+      res.status(401).json({ error: 'Unauthorized' });
+      return;
+    }
+    res.json(getStats());
+  });
+
+  // GET /admin — dashboard UI (HTML page, password required in-browser)
+  app.get('/admin', (_req, res) => {
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    res.send(adminHtml());
   });
 
   // GET /api/scan/:scanId/report — get final report
