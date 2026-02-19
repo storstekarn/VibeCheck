@@ -1,5 +1,13 @@
 import type { QAReport, ProgressEvent } from '../types';
 
+// Base URL for all API calls.
+// Set VITE_API_URL at build time if the backend is on a different origin
+// (e.g. VITE_API_URL=https://backend.railway.app).
+// Leave unset when frontend and backend are served from the same host — the
+// default empty string makes all paths relative, which is the correct setup
+// for the single-service Railway deployment where Express serves the frontend.
+const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '';
+
 /**
  * Validate a URL string on the client side.
  * Returns null if valid, or an error message string.
@@ -24,7 +32,7 @@ export function validateUrl(url: string): string | null {
  * Start a new scan by posting a URL to the backend.
  */
 export async function startScan(url: string): Promise<{ scanId: string }> {
-  const res = await fetch('/api/scan', {
+  const res = await fetch(`${API_BASE}/api/scan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ url }),
@@ -48,7 +56,7 @@ export function connectProgress(
   onProgress: (event: ProgressEvent) => void,
   onError: (error: string) => void,
 ): () => void {
-  const eventSource = new EventSource(`/api/scan/${scanId}/progress`);
+  const eventSource = new EventSource(`${API_BASE}/api/scan/${scanId}/progress`);
 
   eventSource.onmessage = (event) => {
     try {
@@ -72,7 +80,7 @@ export function connectProgress(
  * Fetch the completed scan report.
  */
 export async function getReport(scanId: string): Promise<QAReport> {
-  const res = await fetch(`/api/scan/${scanId}/report`);
+  const res = await fetch(`${API_BASE}/api/scan/${scanId}/report`);
   const data = await res.json();
 
   if (!res.ok) {

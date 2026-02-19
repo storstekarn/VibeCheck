@@ -1,0 +1,30 @@
+# Never copy local node_modules — let the Docker build install them fresh for Linux
+node_modules/
+*/node_modules/
+
+# Build outputs (rebuilt inside Docker)
+frontend/dist/
+backend/dist/
+*.tsbuildinfo
+
+# Git
+.git/
+.gitignore
+
+# Env files
+.env
+.env.*
+
+# Runtime / cache
+backend/prompt-cache.json
+playwright-report/
+test-results/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/

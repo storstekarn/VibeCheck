@@ -175,10 +175,13 @@ export function createApp() {
   // Serve frontend static files (production build)
   const frontendDist = join(__dirname, '../../frontend/dist');
   if (fs.existsSync(frontendDist)) {
+    console.log(`Serving frontend static files from: ${frontendDist}`);
     app.use(express.static(frontendDist));
     app.get('*', (_req, res) => {
       res.sendFile(join(frontendDist, 'index.html'));
     });
+  } else {
+    console.warn(`Frontend dist not found at: ${frontendDist} — running in API-only mode`);
   }
 
   return { app, scanStore };
