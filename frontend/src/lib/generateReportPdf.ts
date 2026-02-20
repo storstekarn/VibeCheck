@@ -145,7 +145,7 @@ export function generateReportPdf(report: QAReport): jsPDF {
   y += CARD_H + 8;
 
   // --- Bug list ---
-  const allBugs = report.pages.flatMap((p) => p.bugs);
+  const allBugs = (report.pages ?? []).flatMap((p) => p.bugs ?? []);
 
   if (allBugs.length === 0) {
     doc.setFontSize(14);

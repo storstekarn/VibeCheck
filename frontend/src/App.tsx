@@ -113,11 +113,25 @@ function App() {
             }, 500);
           }
         },
-        (error) => {
-          // SSE error — try to fetch report anyway (scan may have completed)
-          getReport(scanId)
-            .then((report) => setState({ phase: 'report', report }))
-            .catch(() => setState({ phase: 'error', message: error }));
+        (connectionError) => {
+          // SSE connection dropped mid-scan.
+          // Poll getReport every 5 s until the scan finishes — the backend
+          // returns 202 while still running and a full report when done.
+          // Only give up after ~2 minutes (24 attempts).
+          function tryGetReport(attemptsLeft: number) {
+            getReport(scanId)
+              .then((report) => setState({ phase: 'report', report }))
+              .catch((err) => {
+                const stillRunning =
+                  err instanceof Error && err.message.includes('still in progress');
+                if (stillRunning && attemptsLeft > 0) {
+                  setTimeout(() => tryGetReport(attemptsLeft - 1), 5000);
+                } else {
+                  setState({ phase: 'error', message: connectionError });
+                }
+              });
+          }
+          tryGetReport(24);
         },
       );
     } catch (err) {

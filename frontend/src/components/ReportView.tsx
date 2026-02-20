@@ -14,10 +14,13 @@ interface ReportViewProps {
 export function ReportView({ report, onReset }: ReportViewProps) {
   const [severityFilter, setSeverityFilter] = useState<Severity | null>(null);
 
-  const allBugs = useMemo(
-    () => report.pages.flatMap((p) => p.bugs),
-    [report],
-  );
+  const allBugs = useMemo(() => {
+    if (!report.pages) {
+      console.error('[VibeCheck] ReportView received report without pages array:', report);
+      return [];
+    }
+    return report.pages.flatMap((p) => p.bugs ?? []);
+  }, [report]);
 
   const filteredBugs = useMemo(
     () => severityFilter ? allBugs.filter((b) => b.severity === severityFilter) : allBugs,
@@ -29,7 +32,7 @@ export function ReportView({ report, onReset }: ReportViewProps) {
     .map((b) => b.fixPrompt)
     .join('\n\n');
 
-  const { summary } = report;
+  const summary = report.summary ?? { totalBugs: 0, critical: 0, warnings: 0, info: 0, byType: {} };
   const noBugs = summary.totalBugs === 0;
 
   return (

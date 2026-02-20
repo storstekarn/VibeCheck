@@ -85,14 +85,32 @@ export function connectProgress(
 
 /**
  * Fetch the completed scan report.
+ *
+ * Throws if:
+ *  - HTTP 202: scan is still running (caller should retry later)
+ *  - HTTP 4xx/5xx: server error
+ *  - Response is missing required QAReport fields (pages / summary)
  */
 export async function getReport(scanId: string): Promise<QAReport> {
   const res = await fetch(`${API_BASE}/api/scan/${scanId}/report`);
   const data = await res.json();
 
+  // 202 Accepted means the scan is still in progress — not a complete report.
+  // res.ok is true for all 2xx, so we must check this before the ok guard.
+  if (res.status === 202) {
+    console.log('[VibeCheck] getReport: scan still in progress (202)');
+    throw new Error('Scan still in progress');
+  }
+
   if (!res.ok) {
     throw new Error(data.error || 'Failed to fetch report');
   }
 
-  return data;
+  // Guard against a malformed response that would crash consumers
+  if (!data.pages || !data.summary) {
+    console.error('[VibeCheck] getReport: unexpected response shape', data);
+    throw new Error('Invalid report data received from server');
+  }
+
+  return data as QAReport;
 }
