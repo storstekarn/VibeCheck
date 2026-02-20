@@ -90,15 +90,27 @@ export function ReportView({ report, onReset }: ReportViewProps) {
           </div>
         </div>
 
-        {/* Info banner */}
+        {/* Info banners */}
         {report.warnings && report.warnings.length > 0 && (
           <div
-            className="bg-hint/5 border border-hint/15 rounded-xl p-4 mb-6 animate-fade-up"
+            className="bg-hint/5 border border-hint/15 rounded-xl p-4 mb-4 animate-fade-up"
             style={{ animationDelay: '140ms' }}
           >
             {report.warnings.map((warning, i) => (
               <p key={i} className="text-xs text-hint font-code">{warning}</p>
             ))}
+          </div>
+        )}
+
+        {/* Broken-link disclaimer — shown whenever any broken-link bugs were found */}
+        {allBugs.some((b) => b.type === 'broken-link') && (
+          <div
+            className="bg-hint/5 border border-hint/15 rounded-xl p-4 mb-6 animate-fade-up"
+            style={{ animationDelay: '160ms' }}
+          >
+            <p className="text-xs text-hint font-code">
+              ℹ Broken link checks use automated HTTP requests. Some links may be flagged if the destination site is slow, temporarily down, or restricts automated access — verify manually before fixing.
+            </p>
           </div>
         )}
 

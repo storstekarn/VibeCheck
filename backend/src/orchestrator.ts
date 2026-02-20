@@ -18,16 +18,18 @@ type ProgressCallback = (event: ProgressEvent) => void;
 
 /**
  * Run a single tester with a timeout. Returns empty array on failure.
+ * Pass a custom ms value to override the default per-tester timeout.
  */
 async function runTesterSafe(
   name: string,
   fn: () => Promise<Bug[]>,
+  timeoutMs: number = TESTER_TIMEOUT,
 ): Promise<Bug[]> {
   try {
     const result = await Promise.race([
       fn(),
       new Promise<Bug[]>((_, reject) =>
-        setTimeout(() => reject(new Error(`Tester "${name}" timed out`)), TESTER_TIMEOUT)
+        setTimeout(() => reject(new Error(`Tester "${name}" timed out`)), timeoutMs)
       ),
     ]);
     return result;
@@ -63,10 +65,11 @@ async function testPage(
   bugs.push(...networkBugs);
   await networkPage.close();
 
-  // Broken links
+  // Broken links — given 60 s because HEAD→GET retry logic can take longer per link
   const linksPage = await browser.newPage();
   const linksBugs = await runTesterSafe('links', () =>
-    testBrokenLinks(linksPage, url)
+    testBrokenLinks(linksPage, url),
+    60_000,
   );
   bugs.push(...linksBugs);
   await linksPage.close();
