@@ -18,10 +18,10 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           VibeCheck is operated by <strong className="text-ink">Synergy Minds</strong>, a company based in Sweden.
           For any questions about how we handle your data, contact us at{' '}
           <a
-            href="mailto:patrik.strandberg@synergyminds.se"
+            href="mailto:info@synergyminds.se"
             className="text-brand hover:text-brand-dark transition-colors underline underline-offset-2"
           >
-            patrik.strandberg@synergyminds.se
+            info@synergyminds.se
           </a>
           .
         </p>
@@ -143,10 +143,10 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <p className="mt-4">
             To exercise any of these rights, contact us at{' '}
             <a
-              href="mailto:patrik.strandberg@synergyminds.se"
+              href="mailto:info@synergyminds.se"
               className="text-brand hover:text-brand-dark transition-colors underline underline-offset-2"
             >
-              patrik.strandberg@synergyminds.se
+              info@synergyminds.se
             </a>
             . We will respond within 30 days.
           </p>
@@ -183,10 +183,10 @@ export function PrivacyPolicy({ onBack }: PrivacyPolicyProps) {
           <p>Sweden</p>
           <p>
             <a
-              href="mailto:patrik.strandberg@synergyminds.se"
+              href="mailto:info@synergyminds.se"
               className="text-brand hover:text-brand-dark transition-colors underline underline-offset-2"
             >
-              patrik.strandberg@synergyminds.se
+              info@synergyminds.se
             </a>
           </p>
           <p>

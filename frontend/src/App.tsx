@@ -229,10 +229,10 @@ function App() {
           </button>
           <span className="text-line" aria-hidden="true">|</span>
           <a
-            href="mailto:patrik.strandberg@synergyminds.se"
+            href="mailto:info@synergyminds.se"
             className="text-ink-faint hover:text-ink transition-colors normal-case tracking-normal"
           >
-            patrik.strandberg@synergyminds.se
+            info@synergyminds.se
           </a>
         </div>
       </footer>
