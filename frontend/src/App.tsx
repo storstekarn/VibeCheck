@@ -1,9 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UrlInput } from './components/UrlInput';
 import { ProgressTracker } from './components/ProgressTracker';
 import { ReportView } from './components/ReportView';
+import { ConsentModal } from './components/ConsentModal';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { startScan, connectProgress, getReport } from './lib/api';
 import type { QAReport, ProgressEvent } from './types';
+
+// --- Minimal client-side router ---
+// The Express server has a catch-all that serves index.html for every path,
+// so all routes land here and we decide what to render based on pathname.
+
+function useRoute() {
+  const [path, setPath] = useState(window.location.pathname);
+
+  useEffect(() => {
+    const handlePop = () => setPath(window.location.pathname);
+    window.addEventListener('popstate', handlePop);
+    return () => window.removeEventListener('popstate', handlePop);
+  }, []);
+
+  function navigate(to: string) {
+    history.pushState(null, '', to);
+    setPath(to);
+  }
+
+  return { path, navigate };
+}
+
+// --- App state machine ---
 
 type AppState =
   | { phase: 'input' }
@@ -27,22 +52,47 @@ function getFriendlyError(message: string): string {
   if (message.includes('already running')) {
     return 'Another scan is already in progress. Please wait a moment and try again.';
   }
-  // Validation errors and other already-friendly messages are returned as-is
   return message;
 }
 
+// --- Main app ---
+
 function App() {
+  const { path, navigate } = useRoute();
   const [state, setState] = useState<AppState>({ phase: 'input' });
   const [isLoading, setIsLoading] = useState(false);
 
-  async function handleSubmit(url: string) {
+  // URL waiting for user consent before the scan starts
+  const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+
+  // Render the privacy policy page at /privacy
+  if (path === '/privacy') {
+    return <PrivacyPolicy onBack={() => navigate('/')} />;
+  }
+
+  // Show the consent modal before the scan starts
+  function handleSubmit(url: string) {
+    setPendingUrl(url);
+  }
+
+  function handleConsentCancel() {
+    setPendingUrl(null);
+  }
+
+  async function handleConsentAccept() {
+    if (!pendingUrl) return;
+    const url = pendingUrl;
+    setPendingUrl(null);
+    await executeScan(url);
+  }
+
+  async function executeScan(url: string) {
     setIsLoading(true);
     try {
       const { scanId } = await startScan(url);
 
       setState({ phase: 'scanning', scanId, progress: [] });
 
-      // Connect to SSE progress stream
       connectProgress(
         scanId,
         (event) => {
@@ -83,6 +133,15 @@ function App() {
 
   return (
     <div className="min-h-screen app-bg flex flex-col font-body text-ink">
+      {/* Consent modal — rendered as overlay, doesn't change phase */}
+      {pendingUrl && (
+        <ConsentModal
+          url={pendingUrl}
+          onAccept={handleConsentAccept}
+          onCancel={handleConsentCancel}
+        />
+      )}
+
       <main className="flex-1">
         {state.phase === 'input' && (
           <div className="flex flex-col items-center justify-center min-h-[calc(100vh-60px)] px-4">
@@ -147,17 +206,35 @@ function App() {
         )}
       </main>
 
-      <footer className="py-5 text-center text-xs text-ink-faint tracking-widest uppercase font-code">
-        Powered by{' '}
-        <a
-          href="https://synergyminds.se"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Synergy Minds (opens in new tab)"
-          className="text-ink-dim hover:text-ink transition-colors"
-        >
-          Synergy Minds
-        </a>
+      <footer className="py-5 px-6 text-center text-xs text-ink-faint tracking-widest uppercase font-code">
+        <div className="flex items-center justify-center gap-4 flex-wrap">
+          <span>
+            Powered by{' '}
+            <a
+              href="https://synergyminds.se"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Synergy Minds (opens in new tab)"
+              className="text-ink-dim hover:text-ink transition-colors"
+            >
+              Synergy Minds
+            </a>
+          </span>
+          <span className="text-line" aria-hidden="true">|</span>
+          <button
+            onClick={() => navigate('/privacy')}
+            className="text-ink-faint hover:text-ink transition-colors"
+          >
+            Privacy Policy
+          </button>
+          <span className="text-line" aria-hidden="true">|</span>
+          <a
+            href="mailto:patrik.strandberg@synergyminds.se"
+            className="text-ink-faint hover:text-ink transition-colors normal-case tracking-normal"
+          >
+            patrik.strandberg@synergyminds.se
+          </a>
+        </div>
       </footer>
     </div>
   );
